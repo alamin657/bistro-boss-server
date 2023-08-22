@@ -28,8 +28,9 @@ const verifyJWT = (req, res, next) => {
 }
 
 
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.swu9d.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ovac2y.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -53,7 +54,7 @@ async function run() {
 
     app.post('/jwt', (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30d' })
 
       res.send({ token })
     })
@@ -110,6 +111,8 @@ async function run() {
       res.send(result);
     })
 
+
+
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
@@ -124,6 +127,7 @@ async function run() {
       res.send(result);
 
     })
+
 
 
     // menu related apis
@@ -152,6 +156,7 @@ async function run() {
     })
 
 
+
     // cart collection apis
     app.get('/carts', verifyJWT, async (req, res) => {
       const email = req.query.email;
@@ -169,7 +174,6 @@ async function run() {
       const result = await cartCollection.find(query).toArray();
       res.send(result);
     });
-
     app.post('/carts', async (req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
@@ -198,7 +202,6 @@ async function run() {
       })
     })
 
-
     // payment related api
     app.post('/payments', verifyJWT, async (req, res) => {
       const payment = req.body;
@@ -215,20 +218,8 @@ async function run() {
       const products = await menuCollection.estimatedDocumentCount();
       const orders = await paymentCollection.estimatedDocumentCount();
 
-      // best way to get sum of the price field is to use group and sum operator
-      /*
-        await paymentCollection.aggregate([
-          {
-            $group: {
-              _id: null,
-              total: { $sum: '$price' }
-            }
-          }
-        ]).toArray()
-      */
-
       const payments = await paymentCollection.find().toArray();
-      const revenue = payments.reduce( ( sum, payment) => sum + payment.price, 0)
+      const revenue = payments.reduce((sum, payment) => sum + payment.price, 0)
 
       res.send({
         revenue,
@@ -238,21 +229,7 @@ async function run() {
       })
     })
 
-
-    /**
-     * ---------------
-     * BANGLA SYSTEM(second best solution)
-     * ---------------
-     * 1. load all payments
-     * 2. for each payment, get the menuItems array
-     * 3. for each item in the menuItems array get the menuItem from the menu collection
-     * 4. put them in an array: allOrderedItems
-     * 5. separate allOrderedItems by category using filter
-     * 6. now get the quantity by using length: pizzas.length
-     * 7. for each category use reduce to get the total amount spent on this category
-     * 
-    */
-    app.get('/order-stats', verifyJWT, verifyAdmin, async(req, res) =>{
+    app.get('/order-stats', verifyJWT, verifyAdmin, async (req, res) => {
       const pipeline = [
         {
           $lookup: {
